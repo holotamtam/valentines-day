@@ -1,5 +1,5 @@
 import './App.css';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 function App() {
   const [solution, setSolution] = useState('');
@@ -33,29 +33,7 @@ function App() {
       });
   }, []);
 
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (gameOver) return;
-
-      if (e.key === 'Enter') {
-        if (currentGuess.length !== 5) {
-          setMessage('Word must be 5 letters');
-          setTimeout(() => setMessage(''), 2000);
-          return;
-        }
-        submitGuess();
-      } else if (e.key === 'Backspace') {
-        setCurrentGuess(prev => prev.slice(0, -1));
-      } else if (/^[a-zA-Z]$/.test(e.key) && currentGuess.length < 5) {
-        setCurrentGuess(prev => prev + e.key.toUpperCase());
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentGuess, currentRow, gameOver, solution]);
-
-  const submitGuess = () => {
+  const submitGuess = useCallback(() => {
     if (!validWords.includes(currentGuess)) {
       setMessage('Not in word list');
       setTimeout(() => setMessage(''), 2000);
@@ -76,19 +54,29 @@ function App() {
 
     setCurrentRow(currentRow + 1);
     setCurrentGuess('');
-  };
+  }, [validWords, currentGuess, guesses, currentRow]);
 
-  const resetGame = () => {
-    if (validWords.length > 0) {
-      const randomWord = validWords[Math.floor(Math.random() * validWords.length)];
-      setSolution(randomWord);
-    }
-    setGuesses(Array(6).fill(null));
-    setCurrentGuess('');
-    setCurrentRow(0);
-    setGameOver(false);
-    setRevealedTiles(0);
-  };
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (gameOver) return;
+
+      if (e.key === 'Enter') {
+        if (currentGuess.length !== 5) {
+          setMessage('Word must be 5 letters');
+          setTimeout(() => setMessage(''), 2000);
+          return;
+        }
+        submitGuess();
+      } else if (e.key === 'Backspace') {
+        setCurrentGuess(prev => prev.slice(0, -1));
+      } else if (/^[a-zA-Z]$/.test(e.key) && currentGuess.length < 5) {
+        setCurrentGuess(prev => prev + e.key.toUpperCase());
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentGuess, gameOver, submitGuess]);
 
   // Animate tiles appearing one by one
   useEffect(() => {
