@@ -9,6 +9,10 @@ function App() {
   const [gameOver, setGameOver] = useState(false);
   const [message, setMessage] = useState('');
   const [validWords, setValidWords] = useState([]);
+  const [revealedTiles, setRevealedTiles] = useState(0);
+  const [showModal, setShowModal] = useState(false);
+  const [showHearts, setShowHearts] = useState(false);
+  const [noButtonClicks, setNoButtonClicks] = useState(0);
 
   useEffect(() => {
     // Load words from the file
@@ -62,15 +66,11 @@ function App() {
     newGuesses[currentRow] = currentGuess;
     setGuesses(newGuesses);
 
-    if (currentGuess === solution) {
-      setMessage('🎉 You won!');
-      setGameOver(true);
-      return;
-    }
-
     if (currentRow === 5) {
-      setMessage(`Game Over! The word was ${solution}`);
-      setGameOver(true);
+      setTimeout(() => {
+        setGameOver(true);
+        setRevealedTiles(0);
+      }, 800);
       return;
     }
 
@@ -87,8 +87,18 @@ function App() {
     setCurrentGuess('');
     setCurrentRow(0);
     setGameOver(false);
-    setMessage('');
+    setRevealedTiles(0);
   };
+
+  // Animate tiles appearing one by one
+  useEffect(() => {
+    if (gameOver && revealedTiles < 60) { // 6 rows * 10 tiles
+      const timer = setTimeout(() => {
+        setRevealedTiles(prev => prev + 1);
+      }, 80); // Delay between each tile reveal
+      return () => clearTimeout(timer);
+    }
+  }, [gameOver, revealedTiles]);
 
   const handleKeyClick = (key) => {
     if (gameOver) return;
@@ -149,6 +159,16 @@ function App() {
     ['ENTER', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', 'DELETE']
   ];
 
+  // Valentine's message to display on tiles
+  const valentineMessage = [
+    ['W', 'I', 'L', 'L', '', '', '', '', '', ''],
+    ['Y', 'O', 'U', '', '', '', '', '', '', ''],
+    ['B', 'E', '', '', '', '', '', '', '', ''],
+    ['M', 'Y', '', '', '', '', '', '', '', ''],
+    ['V', 'A', 'L', 'E', 'N', 'T', 'I', 'N', 'E', '?'],
+    ['❤', '❤', '', '', '', '', '', '', '', '']
+  ];
+
   return (
     <div className="App">
       <header className="header">
@@ -157,10 +177,44 @@ function App() {
       
       {message && <div className="message">{message}</div>}
       
-      <div className="game-board">
+      <div className={`game-board ${gameOver ? 'valentine-mode' : ''}`}>
         {guesses.map((guess, rowIndex) => (
           <div key={rowIndex} className="row">
-            {[0, 1, 2, 3, 4].map((letterIndex) => {
+            {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((letterIndex) => {
+              // Show valentine message if game is over
+              if (gameOver) {
+                const tileIndex = rowIndex * 10 + letterIndex;
+                const isRevealed = tileIndex < revealedTiles;
+                const letter = valentineMessage[rowIndex][letterIndex];
+                const isHeart = letter === '❤';
+                const isEmpty = letter === '';
+                
+                if (!isRevealed) {
+                  // Tile not yet revealed
+                  return (
+                    <div 
+                      key={letterIndex} 
+                      className="tile"
+                    >
+                    </div>
+                  );
+                }
+                
+                return (
+                  <div 
+                    key={letterIndex} 
+                    className={`tile ${isEmpty ? 'empty-tile' : isHeart ? 'heart-tile' : 'valentine-tile'} filled tile-reveal`}
+                  >
+                    {letter}
+                  </div>
+                );
+              }
+              
+              // Normal game display - only show first 5 tiles during gameplay
+              if (letterIndex >= 5) {
+                return <div key={letterIndex} className="tile hidden-tile"></div>;
+              }
+              
               const word = rowIndex === currentRow ? currentGuess : guess;
               const letter = word ? word[letterIndex] : '';
               const colorClass = rowIndex < currentRow && guess 
@@ -197,9 +251,64 @@ function App() {
       </div>
 
       {gameOver && (
-        <button className="reset-button" onClick={resetGame}>
-          Play Again
-        </button>
+        <div className="valentine-message">
+          <div className="valentine-buttons">
+            <button className="yes-button" onClick={() => {
+              setShowModal(true);
+              setShowHearts(true);
+            }}>Yes! ❤️</button>
+            {noButtonClicks < 4 && (
+              <button 
+                className="also-yes-button"
+                style={{
+                  transform: `scale(${1 - (noButtonClicks * 0.2)})`,
+                  transition: 'transform 0.3s ease'
+                }}
+                onClick={() => {
+                  setNoButtonClicks(prev => prev + 1);
+                }}
+              >
+                No 💔
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {showModal && (
+        <div className="modal-overlay" onClick={() => {
+          setShowModal(false);
+          setShowHearts(false);
+        }}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <img src="/qoobee-agapi-smiles.gif" alt="Thank You" className="modal-gif" />
+            <h2>💕 Thank You! 💕</h2>
+            <p>I love you so much! You make me the happiest person alive!</p>
+            <p>💖 Happy Valentine's Day! 💖</p>
+            <button className="modal-close-button" onClick={() => {
+              setShowModal(false);
+              setShowHearts(false);
+            }}>Close</button>
+          </div>
+        </div>
+      )}
+
+      {showHearts && (
+        <div className="hearts-container">
+          {[...Array(20)].map((_, i) => (
+            <div 
+              key={i} 
+              className="floating-heart"
+              style={{
+                left: `${Math.random() * 100}%`,
+                animationDelay: `${Math.random() * 2}s`,
+                animationDuration: `${3 + Math.random() * 2}s`
+              }}
+            >
+              ❤️
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
