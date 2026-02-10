@@ -44,6 +44,16 @@ function App() {
     newGuesses[currentRow] = currentGuess;
     setGuesses(newGuesses);
 
+    // Check if the user won
+    if (currentGuess === solution) {
+      setTimeout(() => {
+        setGameOver(true);
+        setRevealedTiles(0);
+      }, 800);
+      return;
+    }
+
+    // Check if it's the last guess (game over - they lost)
     if (currentRow === 5) {
       setTimeout(() => {
         setGameOver(true);
@@ -54,7 +64,7 @@ function App() {
 
     setCurrentRow(currentRow + 1);
     setCurrentGuess('');
-  }, [validWords, currentGuess, guesses, currentRow]);
+  }, [validWords, currentGuess, guesses, currentRow, solution]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
